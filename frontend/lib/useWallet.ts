@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { isConnected, requestAccess } from "@stellar/freighter-api";
+import { connectWallet, disconnectWallet } from "@/lib/walletKit";
 
 export function useWallet() {
   const [address, setAddress] = useState<string | null>(null);
@@ -12,21 +12,9 @@ export function useWallet() {
     setError(null);
     setConnecting(true);
     try {
-      const connectedCheck = await isConnected();
-      if (connectedCheck.error) {
-        throw new Error(connectedCheck.error.message);
-      }
-      if (!connectedCheck.isConnected) {
-        throw new Error("Freighter is not installed. Install it from freighter.app.");
-      }
-
-      const access = await requestAccess();
-      if (access.error) {
-        throw new Error(access.error.message);
-      }
-
-      setAddress(access.address);
-      return access.address;
+      const connectedAddress = await connectWallet();
+      setAddress(connectedAddress);
+      return connectedAddress;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to connect wallet");
       return null;
@@ -35,7 +23,12 @@ export function useWallet() {
     }
   }, []);
 
-  const disconnect = useCallback(() => {
+  const disconnect = useCallback(async () => {
+    try {
+      await disconnectWallet();
+    } catch {
+      // Wallet may not support/require an explicit disconnect call.
+    }
     setAddress(null);
     setError(null);
   }, []);
