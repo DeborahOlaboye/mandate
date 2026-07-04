@@ -91,10 +91,3 @@ frontend/                          # Wallet + payment client (Next.js)
 
 A `contracts/` directory (Soroban) will be added once the mandate/policy
 contract work begins.
-
-## Screenshots
-
-<!-- Add screenshots here: -->
-<!-- 1. Wallet connected state -->
-<!-- 2. Balance displayed -->
-<!-- 3. Successful testnet transaction with the result shown to the user -->
