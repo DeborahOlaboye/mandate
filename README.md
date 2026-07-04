@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mandate
 
-## Getting Started
+Mandate is a Stellar testnet payments dApp built for the Stellar Journey to
+Mastery challenge — White Belt (Level 1). It connects to the Freighter
+wallet, displays the connected account's testnet XLM balance, and sends XLM
+payments on the Stellar testnet with clear success/failure feedback.
 
-First, run the development server:
+## Features
+
+- Connect and disconnect a Freighter wallet
+- Fetch and display the connected account's testnet XLM balance, with a
+  Friendbot funding shortcut for unfunded accounts
+- Send an XLM payment to any address on the Stellar testnet
+- Transaction feedback: success/failure state, transaction hash, and a link
+  to view the transaction on Stellar Expert
+
+## Tech stack
+
+- Next.js (App Router) + TypeScript
+- Tailwind CSS
+- [`@stellar/stellar-sdk`](https://www.npmjs.com/package/@stellar/stellar-sdk) for building/submitting transactions
+- [`@stellar/freighter-api`](https://www.npmjs.com/package/@stellar/freighter-api) for wallet connection and signing
+
+## Prerequisites
+
+- Node.js 18+
+- [Freighter wallet](https://freighter.app) browser extension, installed and unlocked
+- Freighter set to **Test Net** (Settings → Network → Test Net)
+- A funded testnet account (the app can fund it for you via Friendbot if it's empty)
+
+## Setup
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in a browser with the
+Freighter extension installed.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Click **Connect Freighter Wallet** and approve the connection in the
+   Freighter popup.
+2. Your testnet XLM balance loads automatically. If the account doesn't
+   exist yet on testnet, click **Fund with Friendbot**.
+3. Enter a destination address (starts with `G...`) and an amount, then
+   click **Send XLM**.
+4. Approve the transaction in Freighter. The result — success or failure,
+   with the transaction hash — appears below the form.
 
-## Learn More
+## Project structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+app/page.tsx              # Main page, wires wallet + balance + payment flow together
+lib/stellar.ts             # Horizon client, balance fetch, transaction build/submit, Friendbot
+lib/useWallet.ts            # Freighter connect/disconnect state hook
+components/WalletConnect.tsx    # Connect/disconnect UI
+components/BalanceCard.tsx      # Balance display + refresh
+components/SendPaymentForm.tsx  # Destination/amount input form
+components/TransactionResult.tsx # Success/failure feedback with tx hash link
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Screenshots
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+<!-- Add screenshots here before submitting: -->
+<!-- 1. Wallet connected state -->
+<!-- 2. Balance displayed -->
+<!-- 3. Successful testnet transaction with the result shown to the user -->
