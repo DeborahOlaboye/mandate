@@ -15,10 +15,19 @@ export default function SendPaymentForm({
 }: SendPaymentFormProps) {
   const [destination, setDestination] = useState("");
   const [amount, setAmount] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const isValidStellarAddress = (value: string) =>
+    /^G[A-Z2-7]{55}$/.test(value);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!destination || !amount) return;
+    if (!isValidStellarAddress(destination)) {
+      setFormError("Enter a valid Stellar public key (starts with G, 56 characters).");
+      return;
+    }
+    setFormError(null);
     onSend(destination, amount);
   };
 
@@ -60,6 +69,11 @@ export default function SendPaymentForm({
       >
         {sending ? "Sending..." : "Send XLM"}
       </button>
+      {formError && (
+        <p className="text-center text-sm text-red-600 dark:text-red-400">
+          {formError}
+        </p>
+      )}
     </form>
   );
 }
