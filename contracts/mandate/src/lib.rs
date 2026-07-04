@@ -50,10 +50,15 @@ pub struct MandateRevoked {
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum Error {
+    /// Mandate not found
     NotFound = 1,
+    /// Mandate has been revoked
     Revoked = 2,
+    /// Mandate has expired
     Expired = 3,
+    /// Insufficient mandate balance for this spend
     LimitExceeded = 4,
+    /// Amount must be greater than zero
     InvalidAmount = 5,
 }
 
