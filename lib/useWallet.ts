@@ -8,7 +8,7 @@ export function useWallet() {
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (): Promise<string | null> => {
     setError(null);
     setConnecting(true);
     try {
@@ -25,9 +25,11 @@ export function useWallet() {
         throw new Error(access.error.message);
       }
 
-      setAddress(access.publicKey);
+      setAddress(access.address);
+      return access.address;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to connect wallet");
+      return null;
     } finally {
       setConnecting(false);
     }
