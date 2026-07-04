@@ -121,7 +121,12 @@ export default function Home() {
     <div className="flex flex-col flex-1 items-center bg-zinc-50 font-sans dark:bg-black">
       <main className="flex w-full max-w-3xl flex-1 flex-col items-center gap-8 px-6 py-16">
         <div className="flex flex-col items-center gap-2 text-center">
-          <h1 className="text-3xl font-semibold tracking-tight">Mandate</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-semibold tracking-tight">Mandate</h1>
+            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+              Testnet
+            </span>
+          </div>
           <p className="max-w-md text-zinc-600 dark:text-zinc-400">
             Connect Freighter, check your testnet balance, and send an XLM
             payment on the Stellar testnet.
