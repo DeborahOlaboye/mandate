@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { getNetworkDetails, signTransaction } from "@stellar/freighter-api";
 import { useWallet } from "@/lib/useWallet";
+import { getSignTransaction, getWalletNetwork } from "@/lib/walletKit";
 import {
   NETWORK_PASSPHRASE,
   buildPaymentTransaction,
@@ -14,6 +14,7 @@ import WalletConnect from "@/components/WalletConnect";
 import BalanceCard from "@/components/BalanceCard";
 import SendPaymentForm from "@/components/SendPaymentForm";
 import TransactionResult, { TxResult } from "@/components/TransactionResult";
+import MandateSection from "@/components/MandateSection";
 
 export default function Home() {
   const { address, connecting, error, connect, disconnect } = useWallet();
@@ -82,14 +83,15 @@ export default function Home() {
       setSending(true);
       setTxResult(null);
       try {
-        const network = await getNetworkDetails();
+        const network = await getWalletNetwork();
         if (network.networkPassphrase !== NETWORK_PASSPHRASE) {
           throw new Error(
-            "Switch Freighter to Test Net before sending a transaction."
+            "Switch your wallet to the Stellar Test Net before sending a transaction."
           );
         }
 
         const xdr = await buildPaymentTransaction(address, destination, amount);
+        const signTransaction = await getSignTransaction();
         const signed = await signTransaction(xdr, {
           networkPassphrase: NETWORK_PASSPHRASE,
           address,
@@ -128,8 +130,8 @@ export default function Home() {
             </span>
           </div>
           <p className="max-w-md text-zinc-600 dark:text-zinc-400">
-            Connect Freighter, check your testnet balance, and send an XLM
-            payment on the Stellar testnet.
+            Connect a Stellar wallet, check your testnet balance, send XLM,
+            and manage on-chain spending mandates on testnet.
           </p>
         </div>
 
@@ -167,6 +169,8 @@ export default function Home() {
             />
 
             {txResult && <TransactionResult result={txResult} />}
+
+            <MandateSection address={address} />
           </>
         )}
       </main>
