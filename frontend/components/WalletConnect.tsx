@@ -39,7 +39,7 @@ export default function WalletConnect({
           disabled={connecting}
           className="rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
         >
-          {connecting ? "Connecting..." : "Connect Freighter Wallet"}
+          {connecting ? "Connecting..." : "Connect Wallet"}
         </button>
       )}
       {error && (
