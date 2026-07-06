@@ -1,11 +1,14 @@
 #![no_std]
-use soroban_sdk::{contract, contracterror, contractevent, contractimpl, contracttype, Address, Env};
+use soroban_sdk::{
+    contract, contracterror, contractevent, contractimpl, contracttype, token, Address, Env,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[contracttype]
 pub struct Mandate {
     pub owner: Address,
     pub spender: Address,
+    pub asset: Address,
     pub limit: i128,
     pub spent: i128,
     pub expiration_ledger: u32,
@@ -60,6 +63,8 @@ pub enum Error {
     LimitExceeded = 4,
     /// Amount must be greater than zero
     InvalidAmount = 5,
+    /// Owner has not approved enough token allowance for this contract
+    AllowanceTooLow = 6,
 }
 
 #[contract]
@@ -74,6 +79,7 @@ impl MandateContract {
         env: Env,
         owner: Address,
         spender: Address,
+        asset: Address,
         limit: i128,
         expiration_ledger: u32,
     ) -> Result<u64, Error> {
@@ -92,6 +98,7 @@ impl MandateContract {
         let mandate = Mandate {
             owner: owner.clone(),
             spender: spender.clone(),
+            asset,
             limit,
             spent: 0,
             expiration_ledger,
@@ -136,6 +143,17 @@ impl MandateContract {
         if mandate.spent + amount > mandate.limit {
             return Err(Error::LimitExceeded);
         }
+
+        let token_client = token::TokenClient::new(&env, &mandate.asset);
+        let contract_address = env.current_contract_address();
+        if token_client.allowance(&mandate.owner, &contract_address) < amount {
+            return Err(Error::AllowanceTooLow);
+        }
+
+        // Inter-contract call: the mandate contract invokes the token
+        // contract to move funds from the owner to the destination, using
+        // the allowance the owner approved for this contract.
+        token_client.transfer_from(&contract_address, &mandate.owner, &destination, &amount);
 
         mandate.spent += amount;
         env.storage()
