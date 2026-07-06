@@ -2,7 +2,10 @@ import { contract, rpc, scValToNative } from "@stellar/stellar-sdk";
 import { NETWORK_PASSPHRASE } from "@/lib/stellar";
 
 export const MANDATE_CONTRACT_ID =
-  "CASEWMVZAFZEDNFGHJSYBC47HI7UUR5U4CST2XHCQXIXEWE7HGNOQM22";
+  "CA3F6CZXUW3RUOIYJ6HSEK6SG6B2XOYOWOYSRNLRL4JQP646SEEOYKD4";
+
+export const NATIVE_ASSET_CONTRACT_ID =
+  "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC";
 
 export const SOROBAN_RPC_URL = "https://soroban-testnet.stellar.org";
 
@@ -11,6 +14,7 @@ export const sorobanServer = new rpc.Server(SOROBAN_RPC_URL);
 export interface Mandate {
   owner: string;
   spender: string;
+  asset: string;
   limit: bigint;
   spent: bigint;
   expiration_ledger: number;
@@ -26,6 +30,7 @@ export interface MandateClient extends contract.Client {
   create_mandate(args: {
     owner: string;
     spender: string;
+    asset: string;
     limit: bigint;
     expiration_ledger: number;
   }): Promise<contract.AssembledTransaction<contract.Result<bigint>>>;
@@ -65,14 +70,24 @@ export interface MandateActionResult {
   hash?: string;
 }
 
+function isResultLike(value: unknown): value is contract.Result<unknown> {
+  return (
+    !!value &&
+    typeof value === "object" &&
+    "isErr" in value &&
+    typeof (value as contract.Result<unknown>).isErr === "function"
+  );
+}
+
 /**
- * Runs a write call (create_mandate/spend/revoke), signs and sends it, and
- * normalizes every failure path into a single result shape:
+ * Runs any contract write call, signs and sends it, and normalizes every
+ * failure path into a single result shape:
  * - thrown errors (wallet rejection, network/simulation failure)
- * - contract-level `Result::Err` values (e.g. mandate limit exceeded)
+ * - contract-level `Result::Err` values (e.g. mandate limit exceeded), for
+ *   contracts that return `Result<T, Error>` rather than panicking
  */
-export async function runMandateWrite(
-  build: () => Promise<contract.AssembledTransaction<contract.Result<unknown>>>,
+export async function runContractWrite<T>(
+  build: () => Promise<contract.AssembledTransaction<T>>,
   onPending: (hash: string | undefined) => void
 ): Promise<MandateActionResult> {
   try {
@@ -85,9 +100,10 @@ export async function runMandateWrite(
     });
 
     const hash = sent.sendTransactionResponse?.hash;
+    const result: unknown = sent.result;
 
-    if (sent.result.isErr()) {
-      return { status: "error", message: sent.result.unwrapErr().message, hash };
+    if (isResultLike(result) && result.isErr()) {
+      return { status: "error", message: result.unwrapErr().message, hash };
     }
 
     return { status: "success", message: "Confirmed on the Stellar testnet.", hash };

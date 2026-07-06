@@ -6,8 +6,11 @@ import {
   getMandateClient,
   Mandate,
   MandateClient,
-  runMandateWrite,
+  MANDATE_CONTRACT_ID,
+  NATIVE_ASSET_CONTRACT_ID,
+  runContractWrite,
 } from "@/lib/mandateContract";
+import { getTokenClient } from "@/lib/tokenContract";
 import { getSignTransaction } from "@/lib/walletKit";
 import { useMandateEvents } from "@/lib/useMandateEvents";
 import EventFeed from "@/components/EventFeed";
@@ -17,6 +20,7 @@ function formatMandate(mandate: Mandate): string {
   return [
     `owner: ${mandate.owner}`,
     `spender: ${mandate.spender}`,
+    `asset: ${mandate.asset}`,
     `limit: ${mandate.limit}`,
     `spent: ${mandate.spent}`,
     `expires at ledger: ${mandate.expiration_ledger}`,
@@ -27,6 +31,14 @@ function formatMandate(mandate: Mandate): string {
 export default function MandateSection({ address }: { address: string }) {
   const [client, setClient] = useState<MandateClient | null>(null);
   const [clientError, setClientError] = useState<string | null>(null);
+  const [signTransaction, setSignTransaction] = useState<
+    Awaited<ReturnType<typeof getSignTransaction>> | null
+  >(null);
+
+  const [approveAmount, setApproveAmount] = useState("1000");
+  const [approveValidForLedgers, setApproveValidForLedgers] = useState("100000");
+  const [approving, setApproving] = useState(false);
+  const [approveResult, setApproveResult] = useState<TxResult | null>(null);
 
   const [spender, setSpender] = useState("");
   const [limit, setLimit] = useState("1000");
@@ -59,9 +71,12 @@ export default function MandateSection({ address }: { address: string }) {
       setClient(null);
       setClientError(null);
       try {
-        const signTransaction = await getSignTransaction();
-        const mandateClient = await getMandateClient({ publicKey: address, signTransaction });
-        if (!cancelled) setClient(mandateClient);
+        const sign = await getSignTransaction();
+        const mandateClient = await getMandateClient({ publicKey: address, signTransaction: sign });
+        if (!cancelled) {
+          setSignTransaction(() => sign);
+          setClient(mandateClient);
+        }
       } catch (err) {
         if (!cancelled) {
           setClientError(
@@ -76,18 +91,44 @@ export default function MandateSection({ address }: { address: string }) {
     };
   }, [address]);
 
+  const handleApprove = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!signTransaction) return;
+      setApproving(true);
+      setApproveResult(null);
+      const result = await runContractWrite(
+        async () => {
+          const tokenClient = await getTokenClient({ publicKey: address, signTransaction });
+          const currentLedger = await getLatestLedgerSequence();
+          return tokenClient.approve({
+            from: address,
+            spender: MANDATE_CONTRACT_ID,
+            amount: BigInt(approveAmount),
+            expiration_ledger: currentLedger + Number(approveValidForLedgers),
+          });
+        },
+        (hash) => setApproveResult({ status: "pending", message: "Submitted, awaiting confirmation...", hash })
+      );
+      setApproveResult(result);
+      setApproving(false);
+    },
+    [address, signTransaction, approveAmount, approveValidForLedgers]
+  );
+
   const handleCreate = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
       if (!client) return;
       setCreating(true);
       setCreateResult(null);
-      const result = await runMandateWrite(
+      const result = await runContractWrite(
         async () => {
           const currentLedger = await getLatestLedgerSequence();
           return client.create_mandate({
             owner: address,
             spender,
+            asset: NATIVE_ASSET_CONTRACT_ID,
             limit: BigInt(limit),
             expiration_ledger: currentLedger + Number(validForLedgers),
           });
@@ -106,7 +147,7 @@ export default function MandateSection({ address }: { address: string }) {
       if (!client) return;
       setSpending(true);
       setSpendResult(null);
-      const result = await runMandateWrite(
+      const result = await runContractWrite(
         () =>
           client.spend({
             mandate_id: BigInt(spendMandateId),
@@ -127,7 +168,7 @@ export default function MandateSection({ address }: { address: string }) {
       if (!client) return;
       setRevoking(true);
       setRevokeResult(null);
-      const result = await runMandateWrite(
+      const result = await runContractWrite(
         () => client.revoke({ mandate_id: BigInt(revokeMandateId) }),
         (hash) => setRevokeResult({ status: "pending", message: "Submitted, awaiting confirmation...", hash })
       );
@@ -162,16 +203,18 @@ export default function MandateSection({ address }: { address: string }) {
 
   return (
     <div className="flex w-full flex-col items-center gap-6 border-t border-black/[.08] pt-8 dark:border-white/[.145]">
-      <div className="flex flex-col items-center gap-1 text-center">
+      <div className="flex flex-col items-center gap-1 px-4 text-center">
         <h2 className="text-xl font-semibold tracking-tight">Mandates (Soroban)</h2>
         <p className="max-w-md text-sm text-zinc-600 dark:text-zinc-400">
-          Create a spending mandate, spend against it, revoke it, or look one
-          up — all calls hit the deployed contract on testnet.
+          Mandates move real testnet XLM: approve the contract as a token
+          spender, create a mandate, then spend against it — each spend calls
+          the native asset contract to move funds from the owner to the
+          destination.
         </p>
       </div>
 
       {clientError && (
-        <p className="max-w-sm text-center text-sm text-red-600 dark:text-red-400">
+        <p className="max-w-sm px-4 text-center text-sm text-red-600 dark:text-red-400">
           {clientError}
         </p>
       )}
@@ -183,10 +226,52 @@ export default function MandateSection({ address }: { address: string }) {
       {client && (
         <>
           <form
-            onSubmit={handleCreate}
-            className="flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-black/[.08] p-6 dark:border-white/[.145]"
+            onSubmit={handleApprove}
+            className="mx-4 flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-black/[.08] p-6 dark:border-white/[.145]"
           >
-            <span className="text-sm font-medium">Create mandate</span>
+            <span className="text-sm font-medium">1. Approve token allowance</span>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Authorizes the Mandate contract to move up to this much XLM from
+              your account. Do this once before creating a mandate with a
+              matching or lower limit.
+            </p>
+            <label className="flex flex-col gap-1 text-sm">
+              Amount (stroops)
+              <input
+                type="number"
+                min="1"
+                value={approveAmount}
+                onChange={(e) => setApproveAmount(e.target.value)}
+                required
+                className="rounded-lg border border-black/[.08] bg-transparent px-3 py-2 text-sm outline-none focus:border-black/30 dark:border-white/[.145] dark:focus:border-white/40"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              Valid for (ledgers from now)
+              <input
+                type="number"
+                min="1"
+                value={approveValidForLedgers}
+                onChange={(e) => setApproveValidForLedgers(e.target.value)}
+                required
+                className="rounded-lg border border-black/[.08] bg-transparent px-3 py-2 text-sm outline-none focus:border-black/30 dark:border-white/[.145] dark:focus:border-white/40"
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={approving}
+              className="mt-1 rounded-full border border-black/[.08] px-5 py-2.5 text-sm font-medium transition-colors hover:bg-black/[.04] disabled:opacity-50 dark:border-white/[.145] dark:hover:bg-[#1a1a1a]"
+            >
+              {approving ? "Approving..." : "Approve allowance"}
+            </button>
+            {approveResult && <TransactionResult result={approveResult} />}
+          </form>
+
+          <form
+            onSubmit={handleCreate}
+            className="mx-4 flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-black/[.08] p-6 dark:border-white/[.145]"
+          >
+            <span className="text-sm font-medium">2. Create mandate</span>
             <label className="flex flex-col gap-1 text-sm">
               Spender address
               <input
@@ -199,7 +284,7 @@ export default function MandateSection({ address }: { address: string }) {
               />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              Limit (units)
+              Limit (stroops)
               <input
                 type="number"
                 min="1"
@@ -232,9 +317,9 @@ export default function MandateSection({ address }: { address: string }) {
 
           <form
             onSubmit={handleSpend}
-            className="flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-black/[.08] p-6 dark:border-white/[.145]"
+            className="mx-4 flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-black/[.08] p-6 dark:border-white/[.145]"
           >
-            <span className="text-sm font-medium">Spend against a mandate</span>
+            <span className="text-sm font-medium">3. Spend against a mandate</span>
             <label className="flex flex-col gap-1 text-sm">
               Mandate ID
               <input
@@ -247,7 +332,7 @@ export default function MandateSection({ address }: { address: string }) {
               />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              Amount
+              Amount (stroops)
               <input
                 type="number"
                 min="1"
@@ -280,7 +365,7 @@ export default function MandateSection({ address }: { address: string }) {
 
           <form
             onSubmit={handleRevoke}
-            className="flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-black/[.08] p-6 dark:border-white/[.145]"
+            className="mx-4 flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-black/[.08] p-6 dark:border-white/[.145]"
           >
             <span className="text-sm font-medium">Revoke a mandate</span>
             <label className="flex flex-col gap-1 text-sm">
@@ -306,7 +391,7 @@ export default function MandateSection({ address }: { address: string }) {
 
           <form
             onSubmit={handleLookup}
-            className="flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-black/[.08] p-6 dark:border-white/[.145]"
+            className="mx-4 flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-black/[.08] p-6 dark:border-white/[.145]"
           >
             <span className="text-sm font-medium">Look up a mandate</span>
             <label className="flex flex-col gap-1 text-sm">
@@ -337,7 +422,9 @@ export default function MandateSection({ address }: { address: string }) {
             )}
           </form>
 
-          <EventFeed events={events} />
+          <div className="mx-4 w-full max-w-sm">
+            <EventFeed events={events} />
+          </div>
         </>
       )}
     </div>
