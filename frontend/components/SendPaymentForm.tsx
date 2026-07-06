@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { isValidStellarAddress } from "@/lib/validation";
 
 interface SendPaymentFormProps {
   disabled: boolean;
@@ -16,9 +17,6 @@ export default function SendPaymentForm({
   const [destination, setDestination] = useState("");
   const [amount, setAmount] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
-
-  const isValidStellarAddress = (value: string) =>
-    /^G[A-Z2-7]{55}$/.test(value);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
