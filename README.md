@@ -26,8 +26,8 @@ The repository has two parts:
 ### Deployed contract (Stellar testnet)
 
 - Contract ID: `CASEWMVZAFZEDNFGHJSYBC47HI7UUR5U4CST2XHCQXIXEWE7HGNOQM22`
-- Example `create_mandate` call: [`11a41f40de1e6a23e37631c6452444c71ff86c63b3307e75c89214f97eae198b`](https://stellar.expert/explorer/testnet/tx/11a41f40de1e6a23e37631c6452444c71ff86c63b3307e75c89214f97eae198b)
-- Example `spend` call: [`56b8de2391ae3c862ddc320250ae68c9e9e1618ed61d2fb7e53f6ced8af3caf5`](https://stellar.expert/explorer/testnet/tx/56b8de2391ae3c862ddc320250ae68c9e9e1618ed61d2fb7e53f6ced8af3caf5)
+- `create_mandate` call, made from the frontend: [`29adf2e26b4a8c7e57b7c3d03fac54cd5820d33f4941d9728178df56e9647c0b`](https://stellar.expert/explorer/testnet/tx/29adf2e26b4a8c7e57b7c3d03fac54cd5820d33f4941d9728178df56e9647c0b)
+- `spend` call: [`56b8de2391ae3c862ddc320250ae68c9e9e1618ed61d2fb7e53f6ced8af3caf5`](https://stellar.expert/explorer/testnet/tx/56b8de2391ae3c862ddc320250ae68c9e9e1618ed61d2fb7e53f6ced8af3caf5)
 
 ### Implemented so far
 
@@ -112,6 +112,20 @@ stellar contract deploy \
 ```
 
 If you redeploy, update `MANDATE_CONTRACT_ID` in `frontend/lib/mandateContract.ts`.
+
+## Screenshots
+
+**Wallet connected + balance displayed**
+![Wallet connected and balance displayed](screenshots/wallet-connected-and-balance.png)
+
+**Wallet options available**
+![Wallet options available](screenshots/wallet-options.png)
+
+**Successful contract transaction, result shown to the user**
+![Mandate created successfully](screenshots/mandate-created-success.png)
+
+**Transaction verified on Stellar Expert**
+![Transaction verified on Stellar Expert](screenshots/stellar-expert-tx-verification.png)
 
 ## Repository structure
 
