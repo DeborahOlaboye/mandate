@@ -45,16 +45,22 @@ Frontend event feed (polls Soroban RPC, updates live)
 
 ### Deployed contract (Stellar testnet)
 
-- Contract ID: `CA3F6CZXUW3RUOIYJ6HSEK6SG6B2XOYOWOYSRNLRL4JQP646SEEOYKD4`
+- Contract ID: `CB4NDEGLS5SS6N5Q4ZPVE7KBI5Y4P4JMJ7NEA7LHD4GHXBC7XMUUYPKU`
 - Native XLM token contract (SAC) it calls into: `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC`
 
 **End-to-end example (owner approves → creates a mandate → spender spends, moving real testnet XLM):**
 
 | Step | Call | Transaction |
 |---|---|---|
-| 1 | Owner approves the Mandate contract as a token spender | [`b351efd33665e968bdf5bae91121d070a201bda70fa490babec17dbd1632a912`](https://stellar.expert/explorer/testnet/tx/b351efd33665e968bdf5bae91121d070a201bda70fa490babec17dbd1632a912) |
-| 2 | Owner creates a mandate | [`567d0dd5e8e8a68ec3c78c93b9239005f22f92841168483a4a6c86c0e35bce96`](https://stellar.expert/explorer/testnet/tx/567d0dd5e8e8a68ec3c78c93b9239005f22f92841168483a4a6c86c0e35bce96) |
-| 3 | Spender spends against it — this single transaction emits **both** a token `transfer` event and a `mandate_spent` event, proving the inter-contract call | [`3ee6772b84e6254a2872cd6902832fd608ba999d084c8681557f56680c210408`](https://stellar.expert/explorer/testnet/tx/3ee6772b84e6254a2872cd6902832fd608ba999d084c8681557f56680c210408) |
+| 1 | Owner approves the Mandate contract as a token spender | [`686b3fcec527fe794d543ab4739c50456fec952af4567285b5162091869d1f69`](https://stellar.expert/explorer/testnet/tx/686b3fcec527fe794d543ab4739c50456fec952af4567285b5162091869d1f69) |
+| 2 | Owner creates a mandate | [`74e09e64a7cac185f48a7ae94c06cf8d6d78c55411662ab7c541848981a2b22c`](https://stellar.expert/explorer/testnet/tx/74e09e64a7cac185f48a7ae94c06cf8d6d78c55411662ab7c541848981a2b22c) |
+| 3 | Spender spends against it — this single transaction emits **both** a token `transfer` event and a `mandate_spent` event, proving the inter-contract call | [`d30671b60328d6a75a39ab969c4bf172a6d58f88941483520de549ea6d6c5672`](https://stellar.expert/explorer/testnet/tx/d30671b60328d6a75a39ab969c4bf172a6d58f88941483520de549ea6d6c5672) |
+
+Note: the destination of a `spend` must already exist as an account (or the
+amount must be at least 1 XLM, the network's minimum to create a new
+account) — this is a Stellar protocol rule the token contract enforces, and
+`spend` now surfaces it as a clean `TransferFailed` error rather than an
+unstructured trap.
 
 ## Implemented
 
@@ -74,7 +80,7 @@ Frontend event feed (polls Soroban RPC, updates live)
 - Contract calls made directly from the browser using `@stellar/stellar-sdk`'s generic `contract.Client` (built from the on-chain contract spec, no separate codegen step)
 - A live event feed polls Soroban RPC for the contract's events and updates in real time, with a visible "reconnecting" state if a poll fails instead of failing silently
 - Every write call surfaces a visible pending → success/fail status with the transaction hash
-- Error handling covers: no wallet detected, transaction rejected in the wallet, and contract-level errors (mandate limit exceeded, insufficient token allowance, expired, revoked)
+- Error handling covers: no wallet detected, transaction rejected in the wallet, and contract-level errors (mandate limit exceeded, insufficient token allowance, expired, revoked, token transfer rejected)
 - Network config (contract IDs, RPC URLs) is overridable via environment variables — see `frontend/.env.example`
 
 ### Planned
