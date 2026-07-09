@@ -10,7 +10,7 @@ import {
   NATIVE_ASSET_CONTRACT_ID,
   runContractWrite,
 } from "@/lib/mandateContract";
-import { getTokenClient } from "@/lib/tokenContract";
+import { buildApproveTransaction } from "@/lib/tokenContract";
 import { getSignTransaction } from "@/lib/walletKit";
 import { useMandateEvents } from "@/lib/useMandateEvents";
 import EventFeed from "@/components/EventFeed";
@@ -99,13 +99,14 @@ export default function MandateSection({ address }: { address: string }) {
       setApproveResult(null);
       const result = await runContractWrite(
         async () => {
-          const tokenClient = await getTokenClient({ publicKey: address, signTransaction });
           const currentLedger = await getLatestLedgerSequence();
-          return tokenClient.approve({
+          return buildApproveTransaction({
             from: address,
             spender: MANDATE_CONTRACT_ID,
             amount: BigInt(approveAmount),
-            expiration_ledger: currentLedger + Number(approveValidForLedgers),
+            expirationLedger: currentLedger + Number(approveValidForLedgers),
+            publicKey: address,
+            signTransaction,
           });
         },
         (hash) => setApproveResult({ status: "pending", message: "Submitted, awaiting confirmation...", hash })

@@ -1,38 +1,43 @@
-import { contract } from "@stellar/stellar-sdk";
+import { Address, Contract, contract, nativeToScVal } from "@stellar/stellar-sdk";
 import { NETWORK_PASSPHRASE } from "@/lib/stellar";
 import { NATIVE_ASSET_CONTRACT_ID, SOROBAN_RPC_URL } from "@/lib/mandateContract";
 
 /**
- * Minimal SEP-41 token client interface for the calls this app needs.
- * The native XLM Stellar Asset Contract implements this interface, so
- * owners can approve the Mandate contract as an allowed spender.
+ * The native XLM asset contract (and other Stellar Asset Contracts) are
+ * built-in host contracts with no uploaded WASM binary, so
+ * `contract.Client.from()` can't auto-discover their spec (it reads the spec
+ * out of the WASM). Instead we build the SEP-41 `approve` call by hand —
+ * `Contract.call()` only needs the raw ScVal args, no spec required — and
+ * hand the resulting operation to `AssembledTransaction.buildWithOp` so it
+ * still goes through the normal simulate/sign/send lifecycle.
  */
-export interface TokenClient extends contract.Client {
-  approve(args: {
-    from: string;
-    spender: string;
-    amount: bigint;
-    expiration_ledger: number;
-  }): Promise<contract.AssembledTransaction<void>>;
-
-  allowance(args: { from: string; spender: string }): Promise<
-    contract.AssembledTransaction<bigint>
-  >;
-
-  balance(args: { id: string }): Promise<contract.AssembledTransaction<bigint>>;
-}
-
-export async function getTokenClient(options: {
+export async function buildApproveTransaction(options: {
   contractId?: string;
-  publicKey?: string;
-  signTransaction?: contract.ClientOptions["signTransaction"];
-}): Promise<TokenClient> {
-  const client = await contract.Client.from({
-    contractId: options.contractId ?? NATIVE_ASSET_CONTRACT_ID,
+  from: string;
+  spender: string;
+  amount: bigint;
+  expirationLedger: number;
+  publicKey: string;
+  signTransaction: contract.SignTransaction;
+}): Promise<contract.AssembledTransaction<void>> {
+  const tokenContractId = options.contractId ?? NATIVE_ASSET_CONTRACT_ID;
+  const tokenContract = new Contract(tokenContractId);
+
+  const operation = tokenContract.call(
+    "approve",
+    new Address(options.from).toScVal(),
+    new Address(options.spender).toScVal(),
+    nativeToScVal(options.amount, { type: "i128" }),
+    nativeToScVal(options.expirationLedger, { type: "u32" })
+  );
+
+  return contract.AssembledTransaction.buildWithOp(operation, {
+    method: "approve",
+    contractId: tokenContractId,
     networkPassphrase: NETWORK_PASSPHRASE,
     rpcUrl: SOROBAN_RPC_URL,
     publicKey: options.publicKey,
     signTransaction: options.signTransaction,
+    parseResultXdr: () => undefined,
   });
-  return client as TokenClient;
 }
