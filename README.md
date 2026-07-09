@@ -186,7 +186,7 @@ If you redeploy, update `NEXT_PUBLIC_MANDATE_CONTRACT_ID` (or the default in `fr
 
 ## Demo video
 
-<!-- Add a 1-2 minute walkthrough link here: connect wallet, send a payment, approve + create + spend a mandate. -->
+https://youtu.be/ffl8EFK9vFY
 
 ## Repository structure
 
