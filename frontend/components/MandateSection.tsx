@@ -61,7 +61,7 @@ export default function MandateSection({ address }: { address: string }) {
   const [lookupResult, setLookupResult] = useState<string | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
 
-  const events = useMandateEvents(!!client);
+  const { events, connectionIssue } = useMandateEvents(!!client);
 
   useEffect(() => {
     let cancelled = false;
@@ -423,7 +423,7 @@ export default function MandateSection({ address }: { address: string }) {
           </form>
 
           <div className="mx-4 w-full max-w-sm">
-            <EventFeed events={events} />
+            <EventFeed events={events} connectionIssue={connectionIssue} />
           </div>
         </>
       )}
