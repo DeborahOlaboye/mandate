@@ -71,6 +71,7 @@ export interface MandateActionResult {
   status: "success" | "error";
   message: string;
   hash?: string;
+  value?: unknown;
 }
 
 function isResultLike(value: unknown): value is contract.Result<unknown> {
@@ -109,7 +110,8 @@ export async function runContractWrite<T>(
       return { status: "error", message: result.unwrapErr().message, hash };
     }
 
-    return { status: "success", message: "Confirmed on the Stellar testnet.", hash };
+    const value = isResultLike(result) ? result.unwrap() : undefined;
+    return { status: "success", message: "Confirmed on the Stellar testnet.", hash, value };
   } catch (err) {
     if (err instanceof contract.AssembledTransaction.Errors.UserRejected) {
       return { status: "error", message: "Transaction was rejected in your wallet." };

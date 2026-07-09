@@ -136,6 +136,13 @@ export default function MandateSection({ address }: { address: string }) {
         },
         (hash) => setCreateResult({ status: "pending", message: "Submitted, awaiting confirmation...", hash })
       );
+      if (result.status === "success" && typeof result.value === "bigint") {
+        const newMandateId = result.value.toString();
+        result.message = `Mandate #${newMandateId} created. Use this ID to spend, revoke, or look it up.`;
+        setSpendMandateId(newMandateId);
+        setRevokeMandateId(newMandateId);
+        setLookupMandateId(newMandateId);
+      }
       setCreateResult(result);
       setCreating(false);
     },
