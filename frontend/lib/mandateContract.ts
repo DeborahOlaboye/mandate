@@ -2,12 +2,15 @@ import { contract, rpc, scValToNative } from "@stellar/stellar-sdk";
 import { NETWORK_PASSPHRASE } from "@/lib/stellar";
 
 export const MANDATE_CONTRACT_ID =
+  process.env.NEXT_PUBLIC_MANDATE_CONTRACT_ID ||
   "CA3F6CZXUW3RUOIYJ6HSEK6SG6B2XOYOWOYSRNLRL4JQP646SEEOYKD4";
 
 export const NATIVE_ASSET_CONTRACT_ID =
+  process.env.NEXT_PUBLIC_NATIVE_ASSET_CONTRACT_ID ||
   "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC";
 
-export const SOROBAN_RPC_URL = "https://soroban-testnet.stellar.org";
+export const SOROBAN_RPC_URL =
+  process.env.NEXT_PUBLIC_SOROBAN_RPC_URL || "https://soroban-testnet.stellar.org";
 
 export const sorobanServer = new rpc.Server(SOROBAN_RPC_URL);
 

@@ -1,11 +1,13 @@
 import { Horizon, Networks, TransactionBuilder, Operation, Asset, BASE_FEE } from "@stellar/stellar-sdk";
 
-export const NETWORK_PASSPHRASE = Networks.TESTNET;
-export const HORIZON_URL = "https://horizon-testnet.stellar.org";
+export const NETWORK_PASSPHRASE = process.env.NEXT_PUBLIC_NETWORK_PASSPHRASE || Networks.TESTNET;
+export const HORIZON_URL =
+  process.env.NEXT_PUBLIC_HORIZON_URL || "https://horizon-testnet.stellar.org";
 
 export const server = new Horizon.Server(HORIZON_URL);
 
-export const FRIENDBOT_URL = "https://friendbot.stellar.org";
+export const FRIENDBOT_URL =
+  process.env.NEXT_PUBLIC_FRIENDBOT_URL || "https://friendbot.stellar.org";
 
 export async function fetchXlmBalance(address: string): Promise<string> {
   const account = await server.loadAccount(address);
