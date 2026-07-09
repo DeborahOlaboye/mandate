@@ -6,6 +6,7 @@ import { getSignTransaction, getWalletNetwork } from "@/lib/walletKit";
 import {
   NETWORK_PASSPHRASE,
   buildPaymentTransaction,
+  describeHorizonError,
   fetchXlmBalance,
   fundTestnetAccount,
   submitSignedTransaction,
@@ -110,7 +111,7 @@ export default function Home() {
       } catch (err) {
         setTxResult({
           status: "error",
-          message: err instanceof Error ? err.message : "Transaction failed",
+          message: describeHorizonError(err),
         });
       } finally {
         setSending(false);

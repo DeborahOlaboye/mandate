@@ -52,3 +52,33 @@ export async function submitSignedTransaction(signedXdr: string) {
   const transaction = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
   return server.submitTransaction(transaction);
 }
+
+interface HorizonErrorLike {
+  response?: {
+    data?: {
+      extras?: {
+        result_codes?: {
+          transaction?: string;
+          operations?: string[];
+        };
+      };
+    };
+  };
+}
+
+/**
+ * Horizon reports submission failures as an HTTP error whose body carries the
+ * actual reason (e.g. "op_underfunded", "op_no_destination"). The SDK's own
+ * error message is just "Request failed with status code 400", so this pulls
+ * the real result codes out of the response body when present.
+ */
+export function describeHorizonError(err: unknown): string {
+  const resultCodes = (err as HorizonErrorLike)?.response?.data?.extras?.result_codes;
+  if (resultCodes) {
+    const parts = [resultCodes.transaction, ...(resultCodes.operations ?? [])].filter(Boolean);
+    if (parts.length > 0) {
+      return `Transaction rejected: ${parts.join(", ")}`;
+    }
+  }
+  return err instanceof Error ? err.message : "Transaction failed";
+}
