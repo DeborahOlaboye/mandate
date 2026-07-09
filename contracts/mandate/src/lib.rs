@@ -65,6 +65,9 @@ pub enum Error {
     InvalidAmount = 5,
     /// Owner has not approved enough token allowance for this contract
     AllowanceTooLow = 6,
+    /// The token contract rejected the transfer (e.g. destination account
+    /// doesn't exist and the amount is below the minimum to create one)
+    TransferFailed = 7,
 }
 
 #[contract]
@@ -152,8 +155,17 @@ impl MandateContract {
 
         // Inter-contract call: the mandate contract invokes the token
         // contract to move funds from the owner to the destination, using
-        // the allowance the owner approved for this contract.
-        token_client.transfer_from(&contract_address, &mandate.owner, &destination, &amount);
+        // the allowance the owner approved for this contract. The token
+        // contract can still reject this (e.g. the destination doesn't exist
+        // yet and `amount` is below the minimum needed to create it), so we
+        // use the non-panicking form and surface that as our own error
+        // rather than letting the whole transaction trap.
+        if token_client
+            .try_transfer_from(&contract_address, &mandate.owner, &destination, &amount)
+            .is_err()
+        {
+            return Err(Error::TransferFailed);
+        }
 
         mandate.spent += amount;
         env.storage()
