@@ -22,7 +22,7 @@ export default function WalletConnect({
   return (
     <div className="flex w-full flex-col items-center gap-2">
       {address ? (
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-3 px-4">
           <span className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-medium text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
             Connected: {truncate(address)}
           </span>
